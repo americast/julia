@@ -960,7 +960,7 @@ end
 # contiguous multidimensional indexing: if the first dimension is a range,
 # we can get some performance from using copy_chunks!
 
-@inline function setindex!(B::BitArray, X::Union{BitArray,Array}, J0::Union{Colon,UnitRange{Int}})
+@inline function setindex!(B::BitArray, X::AbstractArray, J0::Union{Colon,UnitRange{Int}})
     I0 = to_indices(B, (J0,))[1]
     @boundscheck checkbounds(B, I0)
     l0 = length(I0)
@@ -971,13 +971,13 @@ end
     return B
 end
 
-@inline function setindex!(B::BitArray, X::Union{BitArray,Array},
+@inline function setindex!(B::BitArray, X::AbstractArray,
         I0::Union{Colon,UnitRange{Int}}, I::Union{Int,UnitRange{Int},Colon}...)
     J = to_indices(B, (I0, I...))
     @boundscheck checkbounds(B, J...)
     _unsafe_setindex!(B, X, J...)
 end
-@generated function _unsafe_setindex!(B::BitArray, X::Union{BitArray,Array},
+@generated function _unsafe_setindex!(B::BitArray, X::AbstractArray,
         I0::Union{Slice,UnitRange{Int}}, I::Union{Int,UnitRange{Int},Slice}...)
     N = length(I)
     quote

@@ -238,7 +238,7 @@ function fill_chunks!(Bc::Array{UInt64}, x::Bool, pos::Integer, numbits::Integer
     end
 end
 
-copy_to_bitarray_chunks!(dest::Vector{UInt64}, pos_d::Integer, src::BitArray, pos_s::Integer, numbits::Integer) =
+copy_to_bitarray_chunks!(dest::Vector{UInt64}, pos_d::Int, src::BitArray, pos_s::Int, numbits::Int) =
     copy_chunks!(dest, pos_d, src.chunks, pos_s, numbits)
 
 # pack 8 Bools encoded as one contiguous UIn64 into a single byte, e.g.:
@@ -315,7 +315,7 @@ function copy_to_bitarray_chunks!(Bc::Vector{UInt64}, pos_d::Int, C::Array{Bool}
     end
 end
 
-function copy_to_bitarray_chunks!(Bc::Vector{UInt64}, pos_d::Int, C::Array, pos_s::Int, numbits::Int)
+function copy_to_bitarray_chunks!(Bc::Vector{UInt64}, pos_d::Int, C::StridedArray, pos_s::Int, numbits::Int)
     bind = pos_d
     cind = pos_s
     lastind = pos_d + numbits - 1
@@ -335,7 +335,7 @@ end
 @inline try_bool_conversion(x::Real) = x == 0 || x == 1 || throw(InexactError())
 @inline unchecked_bool_convert(x::Real) = x == 1
 
-function copy_to_bitarray_chunks!(Bc::Vector{UInt64}, pos_d::Int, C::Array{<:Real}, pos_s::Int, numbits::Int)
+function copy_to_bitarray_chunks!(Bc::Vector{UInt64}, pos_d::Int, C::StridedArray{<:Real}, pos_s::Int, numbits::Int)
     @inbounds for i = (1:numbits) + pos_s - 1
         try_bool_conversion(C[i])
     end
