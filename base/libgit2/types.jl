@@ -645,30 +645,43 @@ function securezero!(cred::UserPasswordCredential)
     return cred
 end
 
+function Base.:(==)(a::UserPasswordCredential, b::UserPasswordCredential)
+    a.user == b.user && a.pass == b.pass
+end
+
 "SSH credentials type"
 mutable struct SSHCredential <: AbstractCredential
     user::String
     pass::String
-    pubkey::String
     prvkey::String
+    pubkey::String
     usesshagent::String  # used for ssh-agent authentication
     prompt_if_incorrect::Bool    # Whether to allow interactive prompting if the credentials are incorrect
     count::Int
 
-    function SSHCredential(u::AbstractString,p::AbstractString,prompt_if_incorrect::Bool=false)
-        c = new(u,p,"","","Y",prompt_if_incorrect,3)
+    function SSHCredential(u::AbstractString,p::AbstractString,prvkey::AbstractString,pubkey::AbstractString,prompt_if_incorrect::Bool=false)
+        c = new(u,p,prvkey,pubkey,"Y",prompt_if_incorrect,3)
         finalizer(c, securezero!)
         return c
     end
-    SSHCredential(prompt_if_incorrect::Bool=false) = SSHCredential("","",prompt_if_incorrect)
+    SSHCredential(prompt_if_incorrect::Bool=false) = SSHCredential("","","","",prompt_if_incorrect)
 end
 function securezero!(cred::SSHCredential)
     securezero!(cred.user)
     securezero!(cred.pass)
-    securezero!(cred.pubkey)
     securezero!(cred.prvkey)
+    securezero!(cred.pubkey)
     cred.count = 0
     return cred
+end
+
+function Base.:(==)(a::SSHCredential, b::SSHCredential)
+    return (
+        a.user == b.user &&
+        a.pass == b.pass &&
+        a.prvkey == b.prvkey &&
+        a.pubkey == b.pubkey
+    )
 end
 
 "Credentials that support caching"
