@@ -24,7 +24,7 @@ function mirror_callback(remote::Ptr{Ptr{Void}}, repo_ptr::Ptr{Void},
     return Cint(0)
 end
 
-function authenticate_ssh(creds::SSHCredentials, libgit2credptr::Ptr{Ptr{Void}},
+function authenticate_ssh(creds::SSHCredential, libgit2credptr::Ptr{Ptr{Void}},
         username_ptr, schema, host)
     isusedcreds = checkused!(creds)
 
@@ -139,7 +139,7 @@ function authenticate_ssh(creds::SSHCredentials, libgit2credptr::Ptr{Ptr{Void}},
     return err
 end
 
-function authenticate_userpass(creds::UserPasswordCredentials, libgit2credptr::Ptr{Ptr{Void}},
+function authenticate_userpass(creds::UserPasswordCredential, libgit2credptr::Ptr{Ptr{Void}},
         schema, host, urlusername)
     isusedcreds = checkused!(creds)
 
@@ -200,7 +200,7 @@ authentication was successful or not. To avoid an infinite loop from repeatedly
 using the same faulty credentials, the `checkused!` function can be called. This
 function returns `true` if the credentials were used.
 Using credentials triggers a user prompt for (re)entering required information.
-`UserPasswordCredentials` and `CachedCredentials` are implemented using a call
+`UserPasswordCredential` and `CachedCredentials` are implemented using a call
 counting strategy that prevents repeated usage of faulty credentials.
 """
 function credentials_callback(libgit2credptr::Ptr{Ptr{Void}}, url_ptr::Cstring,
@@ -221,21 +221,21 @@ function credentials_callback(libgit2credptr::Ptr{Ptr{Void}}, url_ptr::Cstring,
     explicit = !isnull(creds[]) && !isa(Base.get(creds[]), CachedCredentials)
     # use ssh key or ssh-agent
     if isset(allowed_types, Cuint(Consts.CREDTYPE_SSH_KEY))
-        sshcreds = get_creds!(creds, "ssh://$host", reset!(SSHCredentials(true), -1))
-        if isa(sshcreds, SSHCredentials)
+        sshcreds = get_creds!(creds, "ssh://$host", reset!(SSHCredential(true), -1))
+        if isa(sshcreds, SSHCredential)
             err = authenticate_ssh(sshcreds, libgit2credptr, username_ptr, schema, host)
             err == 0 && return err
         end
     end
 
     if isset(allowed_types, Cuint(Consts.CREDTYPE_USERPASS_PLAINTEXT))
-        defaultcreds = reset!(UserPasswordCredentials(true), -1)
+        defaultcreds = reset!(UserPasswordCredential(true), -1)
         credid = "$schema$host"
         upcreds = get_creds!(creds, credid, defaultcreds)
         # If there were stored SSH credentials, but we ended up here that must
         # mean that something went wrong. Replace the SSH credentials by user/pass
         # credentials
-        if !isa(upcreds, UserPasswordCredentials)
+        if !isa(upcreds, UserPasswordCredential)
             upcreds = defaultcreds
             isa(Base.get(creds[]), CachedCredentials) && (Base.get(creds[]).creds[credid] = upcreds)
         end

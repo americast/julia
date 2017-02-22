@@ -530,7 +530,7 @@ let a = [1,2,3]
     @test a == [0,0,0]
 end
 let creds = Base.LibGit2.CachedCredentials()
-    LibGit2.get_creds!(creds, "foo", LibGit2.SSHCredentials()).pass = "bar"
+    LibGit2.get_creds!(creds, "foo", LibGit2.SSHCredential()).pass = "bar"
     securezero!(creds)
     @test LibGit2.get_creds!(creds, "foo", nothing).pass == "\0\0\0"
 end

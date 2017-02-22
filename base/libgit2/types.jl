@@ -629,20 +629,20 @@ end
 import Base.securezero!
 
 "Credentials that support only `user` and `password` parameters"
-mutable struct UserPasswordCredentials <: AbstractCredentials
+mutable struct UserPasswordCredential <: AbstractCredentials
     user::String
     pass::String
     prompt_if_incorrect::Bool    # Whether to allow interactive prompting if the credentials are incorrect
     count::Int                   # authentication failure protection count
-    function UserPasswordCredentials(u::AbstractString,p::AbstractString,prompt_if_incorrect::Bool=false)
+    function UserPasswordCredential(u::AbstractString,p::AbstractString,prompt_if_incorrect::Bool=false)
         c = new(u,p,prompt_if_incorrect,3)
         finalizer(c, securezero!)
         return c
     end
-    UserPasswordCredentials(prompt_if_incorrect::Bool=false) = UserPasswordCredentials("","",prompt_if_incorrect)
+    UserPasswordCredential(prompt_if_incorrect::Bool=false) = UserPasswordCredential("","",prompt_if_incorrect)
 end
 
-function securezero!(cred::UserPasswordCredentials)
+function securezero!(cred::UserPasswordCredential)
     securezero!(cred.user)
     securezero!(cred.pass)
     cred.count = 0
@@ -650,7 +650,7 @@ function securezero!(cred::UserPasswordCredentials)
 end
 
 "SSH credentials type"
-mutable struct SSHCredentials <: AbstractCredentials
+mutable struct SSHCredential <: AbstractCredentials
     user::String
     pass::String
     pubkey::String
@@ -659,14 +659,14 @@ mutable struct SSHCredentials <: AbstractCredentials
     prompt_if_incorrect::Bool    # Whether to allow interactive prompting if the credentials are incorrect
     count::Int
 
-    function SSHCredentials(u::AbstractString,p::AbstractString,prompt_if_incorrect::Bool=false)
+    function SSHCredential(u::AbstractString,p::AbstractString,prompt_if_incorrect::Bool=false)
         c = new(u,p,"","","Y",prompt_if_incorrect,3)
         finalizer(c, securezero!)
         return c
     end
-    SSHCredentials(prompt_if_incorrect::Bool=false) = SSHCredentials("","",prompt_if_incorrect)
+    SSHCredential(prompt_if_incorrect::Bool=false) = SSHCredential("","",prompt_if_incorrect)
 end
-function securezero!(cred::SSHCredentials)
+function securezero!(cred::SSHCredential)
     securezero!(cred.user)
     securezero!(cred.pass)
     securezero!(cred.pubkey)
@@ -683,12 +683,12 @@ mutable struct CachedCredentials <: AbstractCredentials
 end
 
 "Checks if credentials were used or failed authentication, see `LibGit2.credentials_callback`"
-function checkused!(p::Union{UserPasswordCredentials, SSHCredentials})
+function checkused!(p::Union{UserPasswordCredential, SSHCredential})
     p.count <= 0 && return true
     p.count -= 1
     return false
 end
-reset!(p::Union{UserPasswordCredentials, SSHCredentials}, cnt::Int=3) = (p.count = cnt; p)
+reset!(p::Union{UserPasswordCredential, SSHCredential}, cnt::Int=3) = (p.count = cnt; p)
 reset!(p::CachedCredentials) = (foreach(reset!, values(p.cred)); p)
 
 "Obtain the cached credentials for the given host+protocol (credid), or return and store the default if not found"

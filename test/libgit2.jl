@@ -799,7 +799,7 @@ mktempdir() do dir
     @testset "Credentials" begin
         creds_user = "USER"
         creds_pass = "PASS"
-        creds = LibGit2.UserPasswordCredentials(creds_user, creds_pass)
+        creds = LibGit2.UserPasswordCredential(creds_user, creds_pass)
         @test !LibGit2.checkused!(creds)
         @test !LibGit2.checkused!(creds)
         @test !LibGit2.checkused!(creds)
