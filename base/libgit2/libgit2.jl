@@ -202,8 +202,8 @@ function set_remote_url(path::AbstractString, url::AbstractString; remote::Abstr
     end
 end
 
-function make_payload(payload::Nullable{<:AbstractCredentials})
-    Ref{Nullable{AbstractCredentials}}(payload)
+function make_payload(payload::Nullable{CachedCredentials})
+    Ref{Nullable{CachedCredentials}}(payload)
 end
 
 """
@@ -218,7 +218,7 @@ The keyword arguments are:
   * `remoteurl::AbstractString=""`: the URL of `remote`. If not specified,
     will be assumed based on the given name of `remote`.
   * `refspecs=AbstractString[]`: determines properties of the fetch.
-  * `payload=Nullable{AbstractCredentials}()`: provides credentials, if necessary,
+  * `credentials=Nullable{CachedCredentials}()`: provides credentials, if necessary,
     for instance if `remote` is a private repository.
 
 Equivalent to `git fetch [<remoteurl>|<repo>] [<refspecs>]`.
@@ -226,14 +226,14 @@ Equivalent to `git fetch [<remoteurl>|<repo>] [<refspecs>]`.
 function fetch(repo::GitRepo; remote::AbstractString="origin",
                remoteurl::AbstractString="",
                refspecs::Vector{<:AbstractString}=AbstractString[],
-               payload::Nullable{<:AbstractCredentials}=Nullable{AbstractCredentials}())
+               credentials::Nullable{CachedCredentials}=Nullable{CachedCredentials}())
     rmt = if isempty(remoteurl)
         get(GitRemote, repo, remote)
     else
         GitRemoteAnon(repo, remoteurl)
     end
     try
-        payload = make_payload(payload)
+        payload = make_payload(credentials)
         fo = FetchOptions(callbacks=RemoteCallbacks(credentials_cb(), payload))
         fetch(rmt, refspecs, msg="from $(url(rmt))", options = fo)
     finally
@@ -252,7 +252,7 @@ The keyword arguments are:
   * `refspecs=AbstractString[]`: determines properties of the push.
   * `force::Bool=false`: determines if the push will be a force push,
      overwriting the remote branch.
-  * `payload=Nullable{AbstractCredentials}()`: provides credentials, if necessary,
+  * `credentials=Nullable{CachedCredentials}()`: provides credentials, if necessary,
     for instance if `remote` is a private repository.
 
 Equivalent to `git push [<remoteurl>|<repo>] [<refspecs>]`.
@@ -261,14 +261,14 @@ function push(repo::GitRepo; remote::AbstractString="origin",
               remoteurl::AbstractString="",
               refspecs::Vector{<:AbstractString}=AbstractString[],
               force::Bool=false,
-              payload::Nullable{<:AbstractCredentials}=Nullable{AbstractCredentials}())
+              credentials::Nullable{CachedCredentials}=Nullable{CachedCredentials}())
     rmt = if isempty(remoteurl)
         get(GitRemote, repo, remote)
     else
         GitRemoteAnon(repo, remoteurl)
     end
     try
-        payload = make_payload(payload)
+        payload = make_payload(credentials)
         push_opts=PushOptions(callbacks=RemoteCallbacks(credentials_cb(), payload))
         push(rmt, refspecs, force=force, options=push_opts)
     finally
@@ -429,7 +429,7 @@ The keyword arguments are:
   * `remote_cb::Ptr{Void}=C_NULL`: a callback which will be used to create the remote
     before it is cloned. If `C_NULL` (the default), no attempt will be made to create
     the remote - it will be assumed to already exist.
-  * `payload::Nullable{P<:AbstractCredentials}=Nullable{AbstractCredentials}()`:
+  * `credentials::Nullable{CachedCredentials}=Nullable{CachedCredentials}()`:
     provides credentials if necessary, for instance if the remote is a private
     repository.
 
@@ -439,10 +439,10 @@ function clone(repo_url::AbstractString, repo_path::AbstractString;
                branch::AbstractString="",
                isbare::Bool = false,
                remote_cb::Ptr{Void} = C_NULL,
-               payload::Nullable{<:AbstractCredentials}=Nullable{AbstractCredentials}())
+               credentials::Nullable{CachedCredentials}=Nullable{CachedCredentials}())
     # setup clone options
     lbranch = Base.cconvert(Cstring, branch)
-    payload = make_payload(payload)
+    payload = make_payload(credentials)
     fetch_opts=FetchOptions(callbacks = RemoteCallbacks(credentials_cb(), payload))
     clone_opts = CloneOptions(
                 bare = Cint(isbare),

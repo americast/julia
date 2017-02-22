@@ -118,13 +118,13 @@ function free(buf_ref::Base.Ref{Buffer})
 end
 
 "Abstract credentials payload"
-abstract type AbstractCredentials end
+abstract type AbstractCredential end
 
 "Checks if credentials were used"
-checkused!(p::AbstractCredentials) = true
+checkused!(p::AbstractCredential) = true
 checkused!(p::Void) = false
 "Resets credentials for another use"
-reset!(p::AbstractCredentials, cnt::Int=3) = nothing
+reset!(p::AbstractCredential, cnt::Int=3) = nothing
 
 """
     LibGit2.CheckoutOptions
@@ -182,10 +182,6 @@ Matches the [`git_remote_callbacks`](https://libgit2.github.com/libgit2/#HEAD/ty
     push_negotiation::Ptr{Void}
     transport::Ptr{Void}
     payload::Ptr{Void}
-end
-
-function RemoteCallbacks(credentials::Ptr{Void}, payload::Ref{Nullable{AbstractCredentials}})
-    RemoteCallbacks(credentials=credentials_cb(), payload=pointer_from_objref(payload))
 end
 
 """
@@ -629,7 +625,7 @@ end
 import Base.securezero!
 
 "Credentials that support only `user` and `password` parameters"
-mutable struct UserPasswordCredential <: AbstractCredentials
+mutable struct UserPasswordCredential <: AbstractCredential
     user::String
     pass::String
     prompt_if_incorrect::Bool    # Whether to allow interactive prompting if the credentials are incorrect
@@ -650,7 +646,7 @@ function securezero!(cred::UserPasswordCredential)
 end
 
 "SSH credentials type"
-mutable struct SSHCredential <: AbstractCredentials
+mutable struct SSHCredential <: AbstractCredential
     user::String
     pass::String
     pubkey::String
@@ -676,10 +672,10 @@ function securezero!(cred::SSHCredential)
 end
 
 "Credentials that support caching"
-mutable struct CachedCredentials <: AbstractCredentials
-    cred::Dict{String,AbstractCredentials}
+mutable struct CachedCredentials
+    cred::Dict{String,AbstractCredential}
     count::Int            # authentication failure protection count
-    CachedCredentials() = new(Dict{String,AbstractCredentials}(),3)
+    CachedCredentials() = new(Dict{String,AbstractCredential}(),3)
 end
 
 "Checks if credentials were used or failed authentication, see `LibGit2.credentials_callback`"
@@ -693,18 +689,20 @@ reset!(p::CachedCredentials) = (foreach(reset!, values(p.cred)); p)
 
 "Obtain the cached credentials for the given host+protocol (credid), or return and store the default if not found"
 get_creds!(collection::CachedCredentials, credid, default) = get!(collection.cred, credid, default)
-get_creds!(creds::AbstractCredentials, credid, default) = creds
+get_creds!(creds::AbstractCredential, credid, default) = creds
 get_creds!(creds::Void, credid, default) = default
-function get_creds!(creds::Ref{Nullable{AbstractCredentials}}, credid, default)
+function get_creds!(creds::Ref{Nullable{CachedCredentials}}, credid, default)
     if isnull(creds[])
-        creds[] = Nullable{AbstractCredentials}(default)
-        return default
-    else
-        get_creds!(Base.get(creds[]), credid, default)
+        creds[] = Nullable{CachedCredentials}(CachedCredentials())
     end
+    get_creds!(Base.get(creds[]), credid, default)
 end
 
 function securezero!(p::CachedCredentials)
     foreach(securezero!, values(p.cred))
     return p
+end
+
+function RemoteCallbacks(credentials::Ptr{Void}, payload::Ref{Nullable{CachedCredentials}})
+    RemoteCallbacks(credentials=credentials_cb(), payload=pointer_from_objref(payload))
 end

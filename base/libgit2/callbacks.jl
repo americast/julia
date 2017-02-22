@@ -180,7 +180,7 @@ end
 """Credentials callback function
 
 Function provides different credential acquisition functionality w.r.t. a connection protocol.
-If a payload is provided then `payload_ptr` should contain a `LibGit2.AbstractCredentials` object.
+If a payload is provided then `payload_ptr` should contain a `LibGit2.CachedCredentials` object.
 
 For `LibGit2.Consts.CREDTYPE_USERPASS_PLAINTEXT` type, if the payload contains fields:
 `user` & `pass`, they are used to create authentication credentials.
@@ -218,7 +218,6 @@ function credentials_callback(libgit2credptr::Ptr{Ptr{Void}}, url_ptr::Cstring,
     # get credentials object from payload pointer
     @assert payload_ptr != C_NULL
     creds = unsafe_pointer_to_objref(payload_ptr)
-    explicit = !isnull(creds[]) && !isa(Base.get(creds[]), CachedCredentials)
     # use ssh key or ssh-agent
     if isset(allowed_types, Cuint(Consts.CREDTYPE_SSH_KEY))
         sshcreds = get_creds!(creds, "ssh://$host", reset!(SSHCredential(true), -1))
@@ -237,19 +236,13 @@ function credentials_callback(libgit2credptr::Ptr{Ptr{Void}}, url_ptr::Cstring,
         # credentials
         if !isa(upcreds, UserPasswordCredential)
             upcreds = defaultcreds
-            isa(Base.get(creds[]), CachedCredentials) && (Base.get(creds[]).creds[credid] = upcreds)
+            Base.get(creds[]).creds[credid] = upcreds
         end
         return authenticate_userpass(upcreds, libgit2credptr, schema, host, urlusername)
     end
 
-    # No authentication method we support succeeded. The most likely cause is
-    # that explicit credentials were passed in, but said credentials are incompatible
-    # with the remote host.
+    # No authentication method we support succeeded.
     if err == 0
-        if explicit
-            warn("The explicitly provided credentials were incompatible with " *
-                 "the server's supported authentication methods")
-        end
         err = Cint(Error.EAUTH)
     end
     return Cint(err)
